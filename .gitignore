@@ -1,0 +1,8 @@
+# Ignorar arquivos de ambiente e senhas
+.env
+
+# Ignorar pastas de dependências e compilação
+/Praticas
+
+# Ignorar arquivos temporários do sistema
+
