@@ -5,4 +5,4 @@
 /Praticas
 
 # Ignorar arquivos temporários do sistema
-
+.vscode/
