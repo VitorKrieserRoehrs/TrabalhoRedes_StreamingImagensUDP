@@ -33,7 +33,65 @@ try:
         if not ret:
             break
 
-        ok, buffer = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
+        # Aqui pega as dimensões do frame, para dividir o frame em partes menores
+        h, w, _ = frame.shape
+        metade_h = h // 2
+        metade_w = w // 2
+
+        # (Top-Left)
+        # Vai do topo até a metade da altura, e do canto esquerdo até a metade da largura.
+        parte1 = frame[0:metade_h, 0:metade_w]
+
+        # (Top-Right)
+        # Vai do topo até a metade da altura, e da metade da largura até o fim da imagem.
+        parte2 = frame[0:metade_h, metade_w:w]
+
+        # (Bottom-Left)
+        # Vai da metade da altura até o chão (h), e do canto esquerdo (0) até a metade da largura.
+        parte3 = frame[metade_h:h, 0:metade_w]
+
+        # (Bottom-Right)
+        # Vai da metade da altura até o chão (h), e da metade da largura até o fim da imagem (w).
+        parte4 = frame[metade_h:h, metade_w:w]
+
+        #Parte1
+        ok, buffer = cv2.imencode(".jpg", parte1, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
+        if not ok:
+            raise RuntimeError("Não foi possível codificar um frame como JPEG.")
+
+        bytes_frame = buffer.tobytes()
+        if len(bytes_frame) > 65507:
+            raise RuntimeError(
+                "Um frame excede o tamanho máximo de um datagrama UDP IPv4."
+            )
+        servidor_socket.sendto(bytes_frame, (Grupo_Multicast, Porta))
+
+        #Parte2
+        ok, buffer = cv2.imencode(".jpg", parte2, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
+        if not ok:
+            raise RuntimeError("Não foi possível codificar um frame como JPEG.")
+
+        bytes_frame = buffer.tobytes()
+        if len(bytes_frame) > 65507:
+            raise RuntimeError(
+                "Um frame excede o tamanho máximo de um datagrama UDP IPv4."
+            )
+        servidor_socket.sendto(bytes_frame, (Grupo_Multicast, Porta))
+
+        #Parte3
+        ok, buffer = cv2.imencode(".jpg", parte3, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
+        if not ok:
+            raise RuntimeError("Não foi possível codificar um frame como JPEG.")
+
+        bytes_frame = buffer.tobytes()
+        if len(bytes_frame) > 65507:
+            raise RuntimeError(
+                "Um frame excede o tamanho máximo de um datagrama UDP IPv4."
+            )
+        servidor_socket.sendto(bytes_frame, (Grupo_Multicast, Porta))
+
+        #Parte4
+        ok, buffer = cv2.imencode(".jpg", parte4, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
         if not ok:
             raise RuntimeError("Não foi possível codificar um frame como JPEG.")
 
