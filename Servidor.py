@@ -33,74 +33,36 @@ try:
         if not ret:
             break
 
-        # Aqui pega as dimensões do frame, para dividir o frame em partes menores
+        # Pega as dimensões do frame pra dividir em 4 partes
         h, w, _ = frame.shape
         metade_h = h // 2
         metade_w = w // 2
 
-        # (Top-Left)
-        # Vai do topo até a metade da altura, e do canto esquerdo até a metade da largura.
-        parte1 = frame[0:metade_h, 0:metade_w]
+        partes = [
+            frame[0:metade_h, 0:metade_w],      # Top-Left (ID 0)
+            frame[0:metade_h, metade_w:w],      # Top-Right (ID 1)
+            frame[metade_h:h, 0:metade_w],      # Bottom-Left (ID 2)
+            frame[metade_h:h, metade_w:w]       # Bottom-Right (ID 3)
+        ]
 
-        # (Top-Right)
-        # Vai do topo até a metade da altura, e da metade da largura até o fim da imagem.
-        parte2 = frame[0:metade_h, metade_w:w]
+        # Envia cada uma das 4 partes
+        for id_parte, sub_frame in enumerate(partes):
+            ok, buffer = cv2.imencode(".jpg", sub_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            if not ok:
+                raise RuntimeError(f"Não foi possível codificar a parte {id_parte} como JPEG.")
 
-        # (Bottom-Left)
-        # Vai da metade da altura até o chão (h), e do canto esquerdo (0) até a metade da largura.
-        parte3 = frame[metade_h:h, 0:metade_w]
+            # INJEÇÃO DO CABEÇALHO:
+            # Cria um byte contendo o ID (0, 1, 2 ou 3) e junta com os bytes da imagem
+            pacote_com_id = bytes([id_parte]) + buffer.tobytes()
 
-        # (Bottom-Right)
-        # Vai da metade da altura até o chão (h), e da metade da largura até o fim da imagem (w).
-        parte4 = frame[metade_h:h, metade_w:w]
+            # O limite máximo do datagrama UDP v4 é 65507 bytes totais
+            if len(pacote_com_id) > 65507:
+                raise RuntimeError(
+                    f"A parte {id_parte} excedeu o tamanho máximo de um datagrama UDP IPv4."
+                )
 
-        #Parte1
-        ok, buffer = cv2.imencode(".jpg", parte1, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
-        if not ok:
-            raise RuntimeError("Não foi possível codificar um frame como JPEG.")
-
-        bytes_frame = buffer.tobytes()
-        if len(bytes_frame) > 65507:
-            raise RuntimeError(
-                "Um frame excede o tamanho máximo de um datagrama UDP IPv4."
-            )
-        servidor_socket.sendto(bytes_frame, (Grupo_Multicast, Porta))
-
-        #Parte2
-        ok, buffer = cv2.imencode(".jpg", parte2, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
-        if not ok:
-            raise RuntimeError("Não foi possível codificar um frame como JPEG.")
-
-        bytes_frame = buffer.tobytes()
-        if len(bytes_frame) > 65507:
-            raise RuntimeError(
-                "Um frame excede o tamanho máximo de um datagrama UDP IPv4."
-            )
-        servidor_socket.sendto(bytes_frame, (Grupo_Multicast, Porta))
-
-        #Parte3
-        ok, buffer = cv2.imencode(".jpg", parte3, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
-        if not ok:
-            raise RuntimeError("Não foi possível codificar um frame como JPEG.")
-
-        bytes_frame = buffer.tobytes()
-        if len(bytes_frame) > 65507:
-            raise RuntimeError(
-                "Um frame excede o tamanho máximo de um datagrama UDP IPv4."
-            )
-        servidor_socket.sendto(bytes_frame, (Grupo_Multicast, Porta))
-
-        #Parte4
-        ok, buffer = cv2.imencode(".jpg", parte4, [int(cv2.IMWRITE_JPEG_QUALITY), 80], )
-        if not ok:
-            raise RuntimeError("Não foi possível codificar um frame como JPEG.")
-
-        bytes_frame = buffer.tobytes()
-        if len(bytes_frame) > 65507:
-            raise RuntimeError(
-                "Um frame excede o tamanho máximo de um datagrama UDP IPv4."
-            )
-        servidor_socket.sendto(bytes_frame, (Grupo_Multicast, Porta))
+            # Envia o pacote com o ID embutido
+            servidor_socket.sendto(pacote_com_id, (Grupo_Multicast, Porta))
 
         next_frame_time += frame_interval
         time.sleep(max(0, next_frame_time - time.perf_counter()))
